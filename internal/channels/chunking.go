@@ -41,7 +41,12 @@ func ChunkMarkdown(text string, maxLen int) []string {
 			remaining = strings.TrimLeft(remaining[cutAt:], "\n")
 		} else {
 			// No safe split — force at maxLen, adjust to rune boundary
+			// Leave room for the reopened fence, one complete rune, and the closing fence.
+			repairFence := isInFence(window) && maxLen >= len("```\n")+utf8.UTFMax+len("\n```")
 			cutAt := maxLen
+			if repairFence {
+				cutAt -= len("\n```")
+			}
 			for cutAt > 0 && !utf8.RuneStart(remaining[cutAt]) {
 				cutAt--
 			}
@@ -49,7 +54,7 @@ func ChunkMarkdown(text string, maxLen int) []string {
 				cutAt = maxLen // shouldn't happen, but prevent infinite loop
 			}
 
-			if isInFence(window) {
+			if repairFence {
 				chunks = append(chunks, remaining[:cutAt]+"\n```")
 				needFenceReopen = true
 			} else {
