@@ -39,3 +39,27 @@ func TestChunkMarkdownSmallFenceBudgets(t *testing.T) {
 		}
 	}
 }
+
+func TestChunkMarkdownSmallFenceBudgetsPreserveSpaces(t *testing.T) {
+	text := "```\n" + strings.Repeat("x ", 20) + "\n```"
+	chunks := ChunkMarkdown(text, 11)
+	if spaces := strings.Count(strings.Join(chunks, ""), " "); spaces != 20 {
+		t.Fatalf("code body has %d spaces, want 20", spaces)
+	}
+}
+
+func TestChunkMarkdownSmallFenceBudgetsPreserveCodeBytes(t *testing.T) {
+	for _, limit := range []int{9, 10, 11} {
+		for _, body := range []string{
+			strings.Repeat("x ", 20),
+			strings.Repeat("界 \U0001F642\n", 20),
+			strings.Repeat("  x\t\n\n", 20),
+		} {
+			text := "```\n" + body + "\n```\nfollowing text"
+			chunks := ChunkMarkdown(text, limit)
+			if got := strings.Join(chunks, ""); got != text {
+				t.Errorf("limit %d changed code bytes: got %q, want %q", limit, got, text)
+			}
+		}
+	}
+}
